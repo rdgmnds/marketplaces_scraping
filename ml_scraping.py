@@ -3,12 +3,10 @@ from openpyxl import Workbook
 from datetime import datetime
 import time
 
-#COLOCAR LIMITE DE PAGINAÇÃO
-
 wb = Workbook()
 ws = wb.active
 ws.title = "Anuncios Mercado Livre"
-ws.append(["Marca", "Título", "Preço", "Link"])
+ws.append(["Marca", "Título", "Preço", "Desconto", "Avaliação", "Link"])
 
 def scraping():
     print('Executando o scraping...')
@@ -25,34 +23,44 @@ def scraping():
 
             for i in range(quantidade):
                 try:
+                    #VERIFICAR SE TEM NOME DE MARCA
                     if anuncios.nth(i).locator('span.poly-component__brand').is_visible(timeout=2000):
                         marca = anuncios.nth(i).locator('span.poly-component__brand').inner_text()
+                    else:
+                        marca = "Não informado"
+
                     link = anuncios.nth(i).locator('a.poly-component__title').get_attribute("href")
                     titulo = anuncios.nth(i).locator('a.poly-component__title').inner_text()
                     preco = anuncios.nth(i).locator('span.andes-money-amount__fraction').first.inner_text()
-                    if marca != "":
-                        ws.append([marca, titulo, preco, link])
+
+                    #VERIFICAR SE TEM DESCONTO
+                    if anuncios.nth(i).locator('span.andes-money-amount__discount').is_visible(timeout=2000):
+                        desconto = anuncios.nth(i).locator('span.andes-money-amount__discount').inner_text()
                     else:
-                        ws.append(["", titulo, preco, link]) 
+                        desconto = "Não informado"
+
+                    #VERIFICAR SE TEM AVALIAÇÃO
+                    if anuncios.nth(i).locator('span.poly-reviews__rating').is_visible(timeout=2000):
+                        avaliacao = anuncios.nth(i).locator('span.poly-reviews__rating').inner_text()
+                    else:
+                        avaliacao = "Não informado"
+
+                    ws.append([marca, titulo, preco, desconto, avaliacao, link])
+                    
                 except Exception as e:
                     print(f"Erro ao buscar anúncio {i+1}: {e}")
 
         while True:
-            if num_pagina == 1:    
-                time.sleep(3)
-            else:
-                num_pagina += 1
-                pagina.goto(f"https://www.mercadolivre.com.br/ofertas?page={num_pagina}")
-                time.sleep(3)
             try:
+                time.sleep(3)
                 loop_scraping()
                 pagina.get_by_title("Siguiente").click()
             except Exception as erro:
-                print(f'O scraping foi concluído na página {num_pagina}.')
+                print(f'O scraping foi concluído.')
                 break
         
     data_hora = datetime.now().strftime("%d-%m-%y")
-    wb.save(f'anuncios_mercadolivre_{data_hora}.xlsx')
+    wb.save(f'relatorios/anuncios_mercadolivre_{data_hora}.xlsx')
 
 if __name__ == "__main__":
     scraping()
